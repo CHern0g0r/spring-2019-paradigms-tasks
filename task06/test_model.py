@@ -2,6 +2,7 @@
 import pytest
 from model import *
 
+
 def test_in_scope():
     a, b = object(), object()
     scope = Scope()

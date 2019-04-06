@@ -47,6 +47,11 @@ class ASTNode(metaclass=abc.ABCMeta):
         Запускает вычисление текущего узла синтаксического дерева
         в заданной области видимости и возвращает результат вычисления.
         """
+        pass
+
+    @abc.abstractmethod
+    def accept(self, visitor):
+        pass
 
 
 class ASTNodeVisitor(metaclass=abc.ABCMeta):
@@ -117,6 +122,9 @@ class Number(ASTNode):
     def evaluate(self, scope):
         return self
 
+    def accept(self, visitor):
+        return visitor.visit_number(self)
+
 
 class Function(ASTNode):
     """
@@ -136,6 +144,9 @@ class Function(ASTNode):
     def evaluate(self, scope):
         return self
 
+    def accept(self, visitor):
+        pass
+
 
 class FunctionDefinition(ASTNode):
     """
@@ -153,6 +164,9 @@ class FunctionDefinition(ASTNode):
     def evaluate(self, scope):
         scope[self.name] = self.function
         return self.function
+
+    def accept(self, visitor):
+        return visitor.visit_function_definition(self)
 
 
 class Conditional(ASTNode):
@@ -187,6 +201,9 @@ class Conditional(ASTNode):
             return_value = statement.evaluate(scope)
         return return_value
 
+    def accept(self, visitor):
+        return visitor.visit_conditional(self)
+
 
 class Print(ASTNode):
     """
@@ -210,6 +227,9 @@ class Print(ASTNode):
         print(return_value.value)
         return return_value
 
+    def accept(self, visitor):
+        return visitor.visit_print(self)
+
 
 class Read(ASTNode):
     """
@@ -232,6 +252,9 @@ class Read(ASTNode):
         num = Number(value)
         scope[self.name] = num
         return num
+
+    def accept(self, visitor):
+        return visitor.visit_read(self)
 
 
 class FunctionCall(ASTNode):
@@ -275,6 +298,9 @@ class FunctionCall(ASTNode):
             return_value = arg.evaluate(call_scope)
         return return_value
 
+    def accept(self, visitor):
+        return visitor.visit_function_call(self)
+
 
 class Reference(ASTNode):
     """
@@ -287,6 +313,9 @@ class Reference(ASTNode):
 
     def evaluate(self, scope):
         return scope[self.name]
+
+    def accept(self, visitor):
+        return visitor.visit_reference(self)
 
 
 class BinaryOperation(ASTNode):
@@ -319,6 +348,9 @@ class BinaryOperation(ASTNode):
         val2 = self.rhs.evaluate(scope).value
         return Number(int(bin_operations[self.op](val1, val2)))
 
+    def accept(self, visitor):
+        return visitor.visit_bin_operation(self)
+
 
 class UnaryOperation(ASTNode):
     """
@@ -336,4 +368,8 @@ class UnaryOperation(ASTNode):
         self.expr = expr
 
     def evaluate(self, scope):
-        return Number(int(un_operations[self.op](self.expr.evaluate(scope).value)))
+        val = self.expr.evaluate(scope).value
+        return Number(int(un_operations[self.op](val)))
+
+    def accept(self, visitor):
+        return visitor.visit_un_operation(self)
