@@ -56,7 +56,7 @@ def test_un_operation():
 def test_function_call():
     printer = PrettyPrint()
     check = printer.get_str(FunctionCall(Reference('bar'),
-                                        [Number(4), Number(2)]))
+                                         [Number(4), Number(2)]))
     assert check == 'bar(4, 2);'
 
 
