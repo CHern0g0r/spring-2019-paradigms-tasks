@@ -53,9 +53,9 @@ instance Map NaiveTree where
 
     alter f k Nil = maybe empty (singleton k) (f Nothing)
     alter f k' (Node k a l r)
-            | k' < k = Node k a (alter f k' l) r
-            | k' > k = Node k a l (alter f k' r)
-            | otherwise = let
+                | k' < k = Node k a (alter f k' l) r
+                | k' > k = Node k a l (alter f k' r)
+                | otherwise = let
                 a' = maybe Nil (singleton k) (f (Just a)) in
                 merge l (merge a' r)
 

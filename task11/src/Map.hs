@@ -42,15 +42,13 @@ class Map t where
     insert = insertWith const
 
     insertWith :: Ord k => (a -> a -> a) -> k -> a -> t k a -> t k a
-    insertWith f k a = alter (\x -> case x of
-                        Just val -> Just (f a val)
-                        Nothing -> Just a) k
+    insertWith f k a = alter (Just . maybe a (f a)) k
 
     insertWithKey :: Ord k => (k -> a -> a -> a) -> k -> a -> t k a -> t k a
     insertWithKey f k = insertWith (f k) k
 
     delete :: Ord k => k -> t k a -> t k a
-    delete = alter (const Nothing)
+    delete = alter $ const Nothing
 
     adjust :: Ord k => (a -> a) -> k -> t k a -> t k a
     adjust = alter . fmap
@@ -72,7 +70,7 @@ class Map t where
     member k = isJust . Map.lookup k
 
     notMember :: Ord k => k -> t k a -> Bool
-    notMember k t = not (member k t)
+    notMember k t = not . member k t
 
     null :: t k a -> Bool
     null = (== 0) . size
