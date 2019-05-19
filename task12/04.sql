@@ -4,4 +4,8 @@
 -- данных могут быть страны без городов вообще (например, информации о городах
 -- нет, или кто-то посчитал Антарктиду страной), для таких стран нужно
 -- вывести 0 (0,75 баллов).
-SELECT * FROM Country;
+SELECT Country.Name, COUNT(City.Population)
+FROM Country 
+LEFT JOIN City ON Country.Code = City.CountryCode AND City.Population >= 1000000 
+GROUP BY Country.Name 
+ORDER BY COUNT(City.Population) DESC, Country.Name ASC;
