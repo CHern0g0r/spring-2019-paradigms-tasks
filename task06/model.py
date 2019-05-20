@@ -3,7 +3,7 @@ import abc
 import operator as oper
 
 
-def resolve_expr(expressions, scope):
+def evaluate_block(expressions, scope):
     return_value = Number(0)
     for expr in expressions or []:
         return_value = expr.evaluate(scope)
@@ -180,8 +180,8 @@ class Conditional(ASTNode):
     def evaluate(self, scope):
         condition_result = self.condition.evaluate(scope)
         if condition_result:
-            return resolve_expr(self.if_true, scope)
-        return resolve_expr(self.if_false, scope)
+            return evaluate_block(self.if_true, scope)
+        return evaluate_block(self.if_false, scope)
 
     def accept(self, visitor):
         return visitor.visit_conditional(self)
@@ -272,7 +272,7 @@ class FunctionCall(ASTNode):
         call_scope = Scope(scope)
         for key, arg in zip(function.args, self.args):
             call_scope[key] = arg.evaluate(scope)
-        return resolve_expr(function.body, call_scope)
+        return evaluate_block(function.body, call_scope)
 
     def accept(self, visitor):
         return visitor.visit_function_call(self)
@@ -320,8 +320,8 @@ class BinaryOperation(ASTNode):
         '-': oper.sub,
         '*': oper.mul,
         '/': oper.floordiv,
-        '&&': oper.and_,
-        '||': oper.or_,
+        '&&': lambda x, y: (x and y),
+        '||': lambda x, y: (x or y),
         '==': oper.eq,
         '!=': oper.ne,
         '<': oper.lt,
