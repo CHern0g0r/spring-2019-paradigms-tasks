@@ -5,5 +5,5 @@
 SELECT City.Name, City.Population, Country.Population
 FROM City
 JOIN Country ON Country.Code = City.CountryCode
-ORDER BY CAST (City.Population AS FLOAT) / CAST (Country.Population AS FLOAT) DESC, City.Name DESC
+ORDER BY City.Population * 1.0 / Country.Population * 1.0 DESC, City.Name DESC
 LIMIT 20;
