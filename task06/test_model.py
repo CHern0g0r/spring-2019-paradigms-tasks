@@ -103,42 +103,6 @@ def test_reference():
     assert Reference('a').evaluate(scope) == 10
 
 
-def test_conditional():
-    a = Conditional(BinaryOperation(Number(5), '>', Number(4)),
-                    [Number(1), Number(2)])
-    scope = Scope()
-    check = a.evaluate(scope)
-    assert check.value == 2
-    b = Conditional(BinaryOperation(Number(5), '<', Number(4)),
-                    [Number(1), Number(2)])
-    check = b.evaluate(scope)
-    assert not check
-
-
-def test_frac():
-    func = FunctionDefinition(
-        'fact',
-        Function(['a'],
-                 [Conditional(BinaryOperation(Reference('a'), '>', Number(1)),
-                  [BinaryOperation(
-                      FunctionCall(
-                          Reference('fact'),
-                          [BinaryOperation(Reference('a'), '-', Number(1))]),
-                      '*',
-                      Reference('a'))
-                   ],
-                  [Number(1)]
-                  )
-                  ]
-                 )
-    )
-    scope = Scope()
-    func_call = FunctionCall(Reference('fact'), [Number(5)])
-    func.evaluate(scope)
-    ret = func_call.evaluate(scope)
-    assert ret.value == 120
-
-
 def test_construction():
     FunctionDefinition('fac', Function(['n'], [
         Conditional(

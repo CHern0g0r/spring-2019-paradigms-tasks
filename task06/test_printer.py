@@ -1,67 +1,80 @@
 #!/usr/bin/env python3
 import pytest
+from model import *
 from printer import *
 
 
-def test_conditional():
-    printer = PrettyPrint()
-    check = printer.get_str(Conditional(Number(42), [], []))
-    assert check == 'if (42) {\n};'
+def test_print(capsys):
+    func_print = Print(Number(100))
+    pretty_print(func_print)
+    captured = capsys.readouterr()
+    assert captured.out == "print 100;\n"
 
 
-def test_function_definition():
-    printer = PrettyPrint()
-    check = printer.get_str(FunctionDefinition("bar", Function([], [])))
-    assert check == 'def bar() {\n};'
+def test_read(capsys):
+    func_read = Read('x')
+    pretty_print(func_read)
+    captured = capsys.readouterr()
+    assert captured.out == "read x;\n"
 
 
-def test_print():
-    printer = PrettyPrint()
-    check = printer.get_str(Print(Number(42)))
-    assert check == 'print 42;'
+def test_number(capsys):
+    number = Number(10)
+    pretty_print(number)
+    captured = capsys.readouterr()
+    assert captured.out == "10;\n"
 
 
-def test_read():
-    printer = PrettyPrint()
-    check = printer.get_str(Read('data'))
-    assert check == 'read data;'
+def test_reference(capsys):
+    refer = Reference('x')
+    pretty_print(refer)
+    captured = capsys.readouterr()
+    assert captured.out == "x;\n"
 
 
-def test_number():
-    printer = PrettyPrint()
-    check = printer.get_str(Number(42))
-    assert check == '42;'
+def test_function_definition(capsys):
+    func = FunctionDefinition("foo", Function([], []))
+    pretty_print(func)
+    captured = capsys.readouterr()
+    assert captured.out == "def foo() {\n}\n"
 
 
-def test_reference():
-    printer = PrettyPrint()
-    check = printer.get_str(Reference('data'))
-    assert check == 'data;'
+def test_conditional(capsys):
+    condition = Conditional(Number(100), [], [])
+    pretty_print(condition)
+    captured = capsys.readouterr()
+    assert captured.out == "if (100) {\n}\n"
 
 
-def test_bin_operation():
-    printer = PrettyPrint()
-    add = BinaryOperation(Number(2), '+', Number(3))
-    mul = BinaryOperation(Number(7), '*', add)
-    check = printer.get_str(mul)
-    assert check == '(7) * ((2) + (3));'
+def test_functioncall(capsys):
+    scope = Scope()
+    FunctionDefinition(
+        'func', Function(['n'], [Reference('n')])).evaluate(scope)
+    call = FunctionCall(Reference('func'), [
+        Number(10)
+    ])
+    pretty_print(call)
+    captured = capsys.readouterr()
+    assert captured.out == "func(10);\n"
 
 
-def test_un_operation():
-    printer = PrettyPrint()
-    check = printer.get_str(UnaryOperation('!', Number(42)))
-    assert check == '!(42);'
+def test_binary_operation(capsys):
+    operation = BinaryOperation(Number(1), "*",
+                                BinaryOperation(Number(11), "+", Number(111)))
+    pretty_print(operation)
+    captured = capsys.readouterr()
+    assert captured.out == "(1) * ((11) + (111));\n"
 
 
-def test_function_call():
-    printer = PrettyPrint()
-    check = printer.get_str(FunctionCall(Reference('bar'),
-                                         [Number(4), Number(2)]))
-    assert check == 'bar(4, 2);'
+def test_unary_operation(capsys):
+    operation = UnaryOperation('-', Number(100))
+    pretty_print(operation)
+    captured = capsys.readouterr()
+    assert captured.out == "-(100);\n"
 
 
-def test_all(capsys):
-    pretty_print(FunctionDefinition('main', Function(['arg1'], [
+def test_end_to_end_1(capsys):
+    program = FunctionDefinition('main', Function(['arg1'], [
         Read('x'),
         Print(Reference('x')),
         Conditional(
@@ -75,18 +88,39 @@ def test_all(capsys):
                 ])
             ],
         ),
-    ])))
-    assert capsys.readouterr().out == 'def main(arg1) {\n' + \
-                                      '    read x;\n' + \
-                                      '    print x;\n' + \
-                                      '    if ((2) == (3)) {\n' + \
-                                      '        if (1) {\n' + \
-                                      '        };\n' + \
-                                      '    } else {\n' + \
-                                      '        exit(-(arg1));\n' + \
-                                      '    };\n' + \
-                                      '};\n'
+    ]))
+
+    pretty_print(program)
+    captured = capsys.readouterr()
+    assert captured.out == "def main(arg1) {\n\tread x;\n\tprint x;\n\tif \
+((2) == (3)) {\n\t\tif (1) {\n\t\t}\n\t} else {\n\t\texit(-(arg1));\
+\n\t}\n}\n"
 
 
-if __name__ == "__main__":
-    pytest.main()
+def test_end_to_end_2(capsys):
+    program = FunctionDefinition(
+        'factorial', Function(['n'], [
+            Conditional(
+                BinaryOperation(Reference('n'),
+                                '==',
+                                Number(0)),
+                [Number(1)],
+                [
+                    BinaryOperation(
+                        Reference('n'),
+                        '*',
+                        FunctionCall(
+                            Reference('factorial'), [
+                                BinaryOperation(
+                                    Reference('n'),
+                                    '-',
+                                    Number(1))
+                            ])
+                    )
+                ])
+        ]))
+
+    pretty_print(program)
+    captured = capsys.readouterr()
+    assert captured.out == "def factorial(n) {\n\tif ((n) == (0)) \
+{\n\t\t1;\n\t} else {\n\t\t(n) * (factorial((n) - (1)));\n\t}\n}\n"

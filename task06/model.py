@@ -2,26 +2,12 @@
 import abc
 import operator as oper
 
-bin_operations = {
-    '+': oper.add,
-    '-': oper.sub,
-    '*': oper.mul,
-    '/': oper.floordiv,
-    '&&': oper.and_,
-    '||': oper.or_,
-    '==': oper.eq,
-    '!=': oper.ne,
-    '<': oper.lt,
-    '<=': oper.le,
-    '>': oper.gt,
-    '>=': oper.ge,
-    '%': oper.mod,
-}
 
-un_operations = {
-    '-': oper.neg,
-    '!': oper.not_
-}
+def resolve_expr(expressions, scope):
+    return_value = Number(0)
+    for expr in expressions or []:
+        return_value = expr.evaluate(scope)
+    return return_value
 
 
 class Scope:
@@ -88,11 +74,11 @@ class ASTNodeVisitor(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def visit_bin_operation(self, bin_op):
+    def visit_binary_operation(self, bin_op):
         pass
 
     @abc.abstractmethod
-    def visit_un_operation(self, un_op):
+    def visit_unary_operation(self, un_op):
         pass
 
 
@@ -145,7 +131,7 @@ class Function(ASTNode):
         return self
 
     def accept(self, visitor):
-        pass
+        return visitor.visit_function(self)
 
 
 class FunctionDefinition(ASTNode):
@@ -192,14 +178,10 @@ class Conditional(ASTNode):
         self.if_false = if_false
 
     def evaluate(self, scope):
-        if self.condition.evaluate(scope) != Number(0):
-            eval_list = self.if_true
-        else:
-            eval_list = self.if_false
-        return_value = None
-        for statement in eval_list or []:
-            return_value = statement.evaluate(scope)
-        return return_value
+        condition_result = self.condition.evaluate(scope)
+        if condition_result:
+            return resolve_expr(self.if_true, scope)
+        return resolve_expr(self.if_false, scope)
 
     def accept(self, visitor):
         return visitor.visit_conditional(self)
@@ -286,17 +268,11 @@ class FunctionCall(ASTNode):
         self.args = args
 
     def evaluate(self, scope):
-        return_value = None
-        func = self.fun_expr.evaluate(scope)
-        n_args = [arg.evaluate(scope) for arg in self.args]
+        function = self.fun_expr.evaluate(scope)
         call_scope = Scope(scope)
-
-        for arg_name, arg in zip(func.args, n_args):
-            call_scope[arg_name] = arg.evaluate(scope)
-
-        for arg in func.body:
-            return_value = arg.evaluate(call_scope)
-        return return_value
+        for key, arg in zip(function.args, self.args):
+            call_scope[key] = arg.evaluate(scope)
+        return resolve_expr(function.body, call_scope)
 
     def accept(self, visitor):
         return visitor.visit_function_call(self)
@@ -338,6 +314,23 @@ class BinaryOperation(ASTNode):
     Гарантируется, что lhs и rhs при вычислении дадут объект типа Number,
     т.е. не может получиться так, что вам придется сравнивать две функции.
     """
+
+    bin_operations = {
+        '+': oper.add,
+        '-': oper.sub,
+        '*': oper.mul,
+        '/': oper.floordiv,
+        '&&': oper.and_,
+        '||': oper.or_,
+        '==': oper.eq,
+        '!=': oper.ne,
+        '<': oper.lt,
+        '<=': oper.le,
+        '>': oper.gt,
+        '>=': oper.ge,
+        '%': oper.mod,
+    }
+
     def __init__(self, lhs, op, rhs):
         self.lhs = lhs
         self.op = op
@@ -346,10 +339,10 @@ class BinaryOperation(ASTNode):
     def evaluate(self, scope):
         val1 = self.lhs.evaluate(scope).value
         val2 = self.rhs.evaluate(scope).value
-        return Number(int(bin_operations[self.op](val1, val2)))
+        return Number(int(self.bin_operations[self.op](val1, val2)))
 
     def accept(self, visitor):
-        return visitor.visit_bin_operation(self)
+        return visitor.visit_binary_operation(self)
 
 
 class UnaryOperation(ASTNode):
@@ -363,13 +356,19 @@ class UnaryOperation(ASTNode):
     Как и для BinaryOperation, Number, хранящий 0, считаем за False, а все
     остальные за True.
     """
+
+    un_operations = {
+        '-': oper.neg,
+        '!': oper.not_
+    }
+
     def __init__(self, op, expr):
         self.op = op
         self.expr = expr
 
     def evaluate(self, scope):
         val = self.expr.evaluate(scope).value
-        return Number(int(un_operations[self.op](val)))
+        return Number(int(self.un_operations[self.op](val)))
 
     def accept(self, visitor):
-        return visitor.visit_un_operation(self)
+        return visitor.visit_unary_operation(self)

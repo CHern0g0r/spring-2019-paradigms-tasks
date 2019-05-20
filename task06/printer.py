@@ -1,83 +1,95 @@
-from model import *
+from model import ASTNodeVisitor
 
 
 def pretty_print(program):
-    printer = PrettyPrint()
-    print(printer.get_str(program))
+    printer = PrettyPrinter()
+    program.accept(printer)
+    print(printer.get_data())
 
 
-class PrettyPrint(ASTNodeVisitor):
-
+class PrettyPrinter(ASTNodeVisitor):
     def __init__(self):
-        self.indent_size = 4
-        self.indent_amount = 0
+        self.data = ""
+        self.indent = 0
 
-    def get_str(self, program):
-        return program.accept(self) + ';'
+    def get_data(self):
+        if not self.data.endswith('}'):
+            self.data += ';'
+        return self.data
 
-    def get_indent(self):
-        return ' ' * (self.indent_amount * self.indent_size)
+    def make_indent(self):
+        self.data += "\n" + "\t" * self.indent
 
-    def visit_number(self, number):
-        return str(number.value)
+    def visit_reference(self, node):
+        self.data += node.name
 
-    def visit_function(self, function):
-        pass
+    def visit_number(self, node):
+        self.data += str(node.value)
 
-    def visit_print(self, print):
-        return 'print ' + print.expr.accept(self)
+    def visit_print(self, node):
+        self.data += "print "
+        node.expr.accept(self)
 
-    def visit_read(self, read):
-        return 'read ' + read.name
+    def visit_read(self, node):
+        self.data += "read {}".format(node.name)
 
-    def visit_reference(self, reference):
-        return reference.name
+    def visit_function(self, node):
+        self.data += "{"
+        self.visit_block(node.body)
+        self.data += "}"
 
-    def visit_un_operation(self, operation):
-        return operation.op + '(' + operation.expr.accept(self) + ')'
+    def visit_function_definition(self, node):
+        self.data += "def {}(".format(node.name)
+        self.data += ", ".join(node.function.args)
+        self.data += ") "
+        node.function.accept(self)
 
-    def visit_bin_operation(self, operation):
-        l_val = operation.lhs.accept(self)
-        r_val = operation.rhs.accept(self)
-        return '(' + l_val + ') ' + operation.op + ' (' + r_val + ')'
+    def visit_conditional(self, node):
+        self.data += "if ("
+        node.condition.accept(self)
+        self.data += ") {"
+        self.visit_block(node.if_true)
+        self.data += "}"
+        if node.if_false:
+            self.data += " else {"
+            self.visit_block(node.if_false)
+            self.data += "}"
 
-    def visit_conditional(self, cond):
-        res = 'if (' + cond.condition.accept(self) + ') {\n'
-        self.indent_amount += 1
-        for expr in cond.if_true or []:
-            res += self.get_indent() + expr.accept(self) + ';\n'
-        self.indent_amount -= 1
-        if not cond.if_false:
-            res += self.get_indent() + '}'
-            return res
-        res += self.get_indent() + '} else {\n'
-        self.indent_amount += 1
-        for expr in cond.if_false or []:
-            res += self.get_indent() + expr.accept(self) + ';\n'
-        self.indent_amount -= 1
-        res += self.get_indent() + '}'
-        return res
+    def visit_function_call(self, node):
+        node.fun_expr.accept(self)
+        self.data += "("
+        for i, argument in enumerate(node.args):
+            if i != 0:
+                self.data += ", "
+            argument.accept(self)
+        self.data += ")"
 
-    def visit_function_call(self, func_call):
-        res = func_call.fun_expr.accept(self) + '('
-        if func_call.args:
-            res += func_call.args.pop(0).accept(self)
-            for expr in func_call.args:
-                res += ', ' + expr.accept(self)
-        res += ')'
-        return res
+    def visit_binary_operation(self, node):
+        self.data += "("
+        node.lhs.accept(self)
+        self.data += ")"
+        self.data += " {} ".format(node.op)
+        self.data += "("
+        node.rhs.accept(self)
+        self.data += ")"
 
-    def visit_function_definition(self, func_def):
-        res = 'def ' + func_def.name + '('
-        func = func_def.function
-        if func.args:
-            res += func.args.pop(0)
-            for arg in func.args:
-                res += ', ' + arg
-        res += ') {\n'
-        self.indent_amount += 1
-        for expr in func.body:
-            res += self.get_indent() + expr.accept(self) + ';\n'
-        self.indent_amount -= 1
-        res += self.get_indent() + '}'
-        return res
+    def visit_unary_operation(self, node):
+        self.data += "{}".format(node.op)
+        self.data += "("
+        node.expr.accept(self)
+        self.data += ")"
+
+    def visit_block(self, block):
+        if not block:
+            self.make_indent()
+            return
+        self.indent += 1
+        self.make_indent()
+        for i, node in enumerate(block):
+            if i != 0:
+                self.make_indent()
+            node.accept(self)
+            if not self.data.endswith('}'):
+                self.data += ";"
+        self.indent -= 1
+        self.make_indent()

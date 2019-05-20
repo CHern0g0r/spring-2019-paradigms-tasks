@@ -1,70 +1,63 @@
-#!/usr/bin/env   python3
 from model import *
 
 
 def fold_constants(program):
-    const_folder = ConstantFolder()
-    return const_folder.fold(program)
+    return program.accept(ConstantFolder())
 
 
 class ConstantFolder(ASTNodeVisitor):
-    def fold(self, program):
-        return program.accept(self)
+    def visit_number(self, node):
+        return Number(node.value)
 
-    def visit_number(self, number):
-        return Number(number.value)
+    def visit_reference(self, node):
+        return Reference(node.name)
 
-    def visit_reference(self, ref):
-        return Reference(ref.name)
+    def visit_print(self, node):
+        return Print(node.expr.accept(self))
 
-    def visit_function(self, func):
-        body = []
-        for expr in func.body:
-            body.append(expr.accept(self))
-        return Function(func.args, body)
+    def visit_read(self, node):
+        return Read(node.name)
 
-    def visit_print(self, pr):
-        return Print(pr.expr.accept(self))
+    def visit_function(self, node):
+        body = [statement.accept(self) for statement in node.body]
+        return Function(node.args, body)
 
-    def visit_read(self, read):
-        return Read(read.name)
+    def visit_function_definition(self, node):
+        return FunctionDefinition(node.name, node.function.accept(self))
 
-    def visit_function_definition(self, definition):
-        func = definition.func.accept(self)
-        return FunctionDefinition(definition.name, func)
+    def visit_function_call(self, node):
+        fun_expr = node.fun_expr.accept(self)
+        args = [argument.accept(self) for argument in node.args]
+        return FunctionCall(fun_expr, args)
 
-    def visit_function_call(self, func_call):
-        func = func_call.fun_expr.accept(self)
-        args = []
-        for expr in func_call.args:
-            args.append(expr.accept(self))
-        return FunctionCall(func, args)
-
-    def visit_un_operation(self, operation):
-        expr = operation.expr.accept(self)
-        return UnaryOperation(operation.op, expr).evaluate(None)
-
-    def visit_bin_operation(self, operation):
-        l_val = operation.lhs.accept(self)
-        r_val = operation.rhs.accept(self)
-        if isinstance(l_val, Number) and l_val == Number(0) and\
-           operation.op == '*' or\
-           isinstance(r_val, Number) and r_val == Number(0) and\
-           operation.op == '*':
-            return Number(0)
-        if isinstance(l_val, Reference) and isinstance(r_val, Reference) and\
-           operation.op == '-' and l_val.name == r_val.name:
-            return Number(0)
-        if isinstance(l_val, Number) and isinstance(r_val, Number):
-            return BinaryOperation(l_val, operation.op, r_val).evaluate(None)
-        return BinaryOperation(l_val, operation.op, r_val)
-
-    def visit_conditional(self, conditional):
-        condition = conditional.condition.accept(self)
-        if_true = []
-        if_false = []
-        for expr in conditional.if_true:
-            if_true.append(expr.accept(self))
-        for expr in conditional.if_false:
-            if_false.append(expr.accept(self))
+    def visit_conditional(self, node):
+        condition = node.condition.accept(self)
+        if_true = [statement.accept(self) for statement
+                   in node.if_true or []]
+        if_false = [statement.accept(self) for statement
+                    in node.if_false or []]
         return Conditional(condition, if_true, if_false)
+
+    def visit_binary_operation(self, node):
+        lhs = node.lhs.accept(self)
+        rhs = node.rhs.accept(self)
+        op = node.op
+        if isinstance(lhs, Number) and isinstance(rhs, Number):
+            return BinaryOperation(lhs, op, rhs).evaluate(Scope())
+        if (op == '*' and isinstance(lhs, Number) and lhs == Number(0) and
+                isinstance(rhs, Reference)):
+            return Number(0)
+        if (op == '*' and isinstance(rhs, Number) and rhs == Number(0) and
+                isinstance(lhs, Reference)):
+            return Number(0)
+        if (op == '-' and isinstance(lhs, Reference) and
+                isinstance(rhs, Reference) and lhs.name == rhs.name):
+            return Number(0)
+        return BinaryOperation(lhs, op, rhs)
+
+    def visit_unary_operation(self, node):
+        op = node.op
+        expr = node.expr.accept(self)
+        if isinstance(expr, Number):
+            return UnaryOperation(op, expr).evaluate(Scope())
+        return UnaryOperation(op, expr)
