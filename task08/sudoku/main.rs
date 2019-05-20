@@ -9,10 +9,14 @@
 
 // Намек компилятору, что мы также хотим использовать наш модуль из файла `field.rs`.
 mod field;
+extern crate threadpool;
 
 // Чтобы не писать `field::Cell:Empty`, можно "заимпортировать" нужные вещи из модуля.
 use field::Cell::*;
 use field::{parse_field, Field, N};
+
+use std::sync::mpsc;
+use threadpool::ThreadPool;
 
 /// Эта функция выполняет один шаг перебора в поисках решения головоломки.
 /// Она перебирает значение какой-нибудь пустой клетки на поле всеми непротиворечивыми способами.
@@ -170,34 +174,36 @@ fn find_solution(f: &mut Field) -> Option<Field> {
 /// Перебирает все возможные решения головоломки, заданной параметром `f`, в несколько потоков.
 /// Если хотя бы одно решение `s` существует, возвращает `Some(s)`,
 /// в противном случае возвращает `None`.
-use std::sync::mpsc::{channel, Sender, Receiver};
-use threadpool::ThreadPool;
 
-fn spawn_tasks (pool: &ThreadPool, f: &mut Field, tx: &Sender<Option<Field>>, depth: i32) {
-    if depth > 0 {
-        try_extend_field(f, |f| { tx.send(Some(f.clone())).unwrap_or(()); },
-                            |f| { spawn_tasks(pool, f, tx, depth-1);
-                                  None });
-    } else {
-        let tx1 = tx.clone();
+fn spawn_tasks(pool: &ThreadPool, f: &mut Field, tx: &mpsc::Sender<Option<Field>>, depth: i32) {
+    assert!(depth >= 0);
+    if depth == 0 {
+        let tx = tx.clone();
         let mut f = f.clone();
-        pool.execute( move || { tx1.send(find_solution(&mut f)).unwrap_or(()) });
+        pool.execute(move || {
+            tx.send(find_solution(&mut f)).unwrap_or(());
+        });
+    } else {
+        try_extend_field(
+            f,
+            |f| {
+                tx.send(Some(f.clone())).unwrap_or(());
+            },
+            |f| {
+                spawn_tasks(&pool, f, &tx, depth - 1);
+                None
+            },
+        );
     }
 }
 
-
 fn find_solution_parallel(mut f: Field) -> Option<Field> {
-
     const SPAWN_DEPTH: i32 = 2;
-    
-    let (tx, rx): (Sender<Option<Field>>, Receiver<Option<Field>>) = channel();
-    let pool = ThreadPool::new(8);
-    
-    spawn_tasks (&pool, &mut f, &tx, SPAWN_DEPTH);
-
-    let mut iterator = rx.into_iter();
+    let (tx, rx) = mpsc::channel();
+    let pool = threadpool::ThreadPool::new(8);
+    spawn_tasks(&pool, &mut f, &tx, SPAWN_DEPTH);
     std::mem::drop(tx);
-    iterator.find_map(|x| x)
+    rx.into_iter().find_map(|x| x)
 }
 
 /// Юнит-тест, проверяющий, что `find_solution()` находит лексикографически минимальное решение на пустом поле.
