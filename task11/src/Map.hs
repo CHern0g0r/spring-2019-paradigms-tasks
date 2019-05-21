@@ -70,7 +70,7 @@ class Map t where
     member k = isJust . Map.lookup k
 
     notMember :: Ord k => k -> t k a -> Bool
-    notMember k t = not . member k t
+    notMember k = not . member k
 
     null :: t k a -> Bool
     null = (== 0) . size
