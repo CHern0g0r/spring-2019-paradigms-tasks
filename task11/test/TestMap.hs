@@ -207,15 +207,15 @@ mapTests name (_ :: Proxy m) =
                 let map = singleton 2 "B" :: m Int String in
                 Map.member 2 map @?= True,
 
-            testCase "on empty map" $
+            testCase "(notMember) on empty map" $
                 let map = empty :: m Int String in
                 Map.notMember 2 map @?= True,
 
-            testCase "not existing key" $
+            testCase "(notMember) not existing key" $
                 let map = singleton 2 "B" :: m Int String in
                 Map.notMember 3 map @?= True,
 
-            testCase "existing key" $
+            testCase "(notMember) existing key" $
                 let map = singleton 2 "B" :: m Int String in
                 Map.notMember 2 map @?= False
         ],
