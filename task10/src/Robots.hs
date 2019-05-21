@@ -22,7 +22,7 @@ robot name attack hp  = (name, attack, hp)
 -- Напишем их и мы
 
 getName :: Robot -> Name
-getName (myName, _, _) = myName
+getName (myName, _, _)     = myName
 
 getAttack :: Robot -> Attack
 getAttack (_, myAttack, _) = myAttack
@@ -35,7 +35,7 @@ getHealth (_, _, myHealth) = myHealth
 -- состояние робота
 
 setName :: Name -> Robot -> Robot
-setName newName (_, myAttack, myHealth) = (newName, myAttack, myHealth)
+setName newName (_, myAttack, myHealth)   = (newName, myAttack, myHealth)
 
 setAttack :: Attack -> Robot -> Robot
 setAttack newAttack (myName, _, myHealth) = (myName, newAttack, myHealth) 
@@ -57,8 +57,8 @@ printRobot (myName, myAttack, myHealth) = myName ++ ", attack: " ++ show myAttac
 -- Напишем функцию damage которая причиняет роботу урон
 damage :: Robot -> Int -> Robot
 damage victim amount = let
-        health = getHealth victim
-        newHealth = health - amount
+        health       = getHealth victim
+        newHealth    = health - amount
     in setHealth newHealth victim
 
 -- Шаг 3.
@@ -90,8 +90,8 @@ fight attacker defender | isAlive attacker = damage defender (getAttack attacker
 -- победителем считается тот, кто ударял первым(то есть атакующий робот)
 threeRoundFight :: Robot -> Robot -> Robot
 threeRoundFight attacker defender = let
-    defender' = fight attacker defender
-    attacker' = fight defender' attacker
+    defender'  = fight attacker defender
+    attacker'  = fight defender' attacker
     defender'' = fight attacker' defender'
     in
         if getHealth attacker' >= getHealth defender''
