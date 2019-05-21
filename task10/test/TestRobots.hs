@@ -18,19 +18,19 @@ testsRobots = let
         , testCase "Test for printRobot" $
             printRobot walter @?= "Walter, attack: 50, health: 50"
         , testCase "Test for getAttack" $
-            getAttack jesse @?= 30
+            getAttack walter @?= 50
         , testCase "Test for getHealth" $
-            getHealth mike @?= 50
+            getHealth walter @?= 50
         , testCase "Test for setName" $
             setName "Heisenberg" walter @?= ("Heisenberg", 50, 50)
         , testCase "Test for setAttack" $
             setAttack 500 walter @?= ("Walter", 500, 50)
         , testCase "Test for setHealth" $
-            setHealth 0 gus @?= ("Gus", 100, 0)
+            setHealth 0 walter @?= ("Walter", 50, 0)
         , testCase "Test for damage" $
             damage walter 50 @?= ("Walter", 50, 0)
         , testCase "Test for isAlive" $
-            isAlive jesse @?= True
+            isAlive walter @?= True
         , testCase "Test for isAlive" $
             isAlive gus @?= False
         , testCase "Fight between 2 robots" $

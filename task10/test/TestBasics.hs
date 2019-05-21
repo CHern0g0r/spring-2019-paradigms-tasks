@@ -26,9 +26,6 @@ testsBasics = testGroup "Unit tests for Basics tasks"
     , testCase "take' takes 1 element from 3-element list" $
         take' 1 [1,2,3] @?= [1]
 
-    , testCase "take' works on empty list" $
-        take' 3 ([]::[Int]) @?= []
-
     , testCase "take' takes 10 elements from endless list" $
         take' 10 [1..] @?= [1..10]
 

@@ -35,13 +35,13 @@ getHealth (_, _, myHealth) = myHealth
 -- состояние робота
 
 setName :: Name -> Robot -> Robot
-setName newName (_, myAttack, myHealth)   = (newName, myAttack, myHealth)
+setName newName (_, myAttack, myHealth)   = robot newName myAttack myHealth
 
 setAttack :: Attack -> Robot -> Robot
-setAttack newAttack (myName, _, myHealth) = (myName, newAttack, myHealth) 
+setAttack newAttack (myName, _, myHealth) = robot myName newAttack myHealth
 
 setHealth :: Health -> Robot -> Robot
-setHealth newHealth (myName, myAttack, _) = (myName, myAttack, newHealth)
+setHealth newHealth (myName, myAttack, _) = robot myName myAttack newHealth
 
 -- Шаг 2.
 -- Напишите функцию, которая ведет себя как __str__
@@ -115,4 +115,4 @@ neueRobotAttak defender = fight neueRobot defender
 -- Наконец, используя filter определите, кто из роботов, которых вы положили в список roboter,
 -- выживет, если neueRobot сразится с ним в одном раунде.
 survivors :: [Robot]
-survivors = filter (\r -> isAlive (neueRobotAttak r)) roboter
+survivors = filter (isAlive . neueRobotAttak) roboter
