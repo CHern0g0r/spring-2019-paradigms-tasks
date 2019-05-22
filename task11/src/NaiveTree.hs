@@ -57,7 +57,7 @@ instance Map NaiveTree where
                     | k' > k = Node k a l (alter f k' r)
                     | otherwise = let
                     a' = maybe Nil (singleton k) (f (Just a))
-                in merge l (merge a' r)
+                    in merge l (merge a' r)
 
     lookup _ Nil = Nothing
     lookup key (Node k a l r)
